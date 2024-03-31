@@ -45,8 +45,60 @@
     app.use(express.static('upload'))
 
 
+
+
+
+
+
+
+// Express Session
+const session = require('express-session');
+app.use(session({
+    secret: 'secret',
+    resave: false,
+    saveUninitialized: false,
+}));
+
+// Passport.js
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+
+passport.use(new LocalStrategy({
+    usernameField: 'username',
+    passwordField: 'password'
+},
+    async function (username, password, done) {
+        const user = await userModel.findOne({ username: username });
+        if (!user) {
+            return done(null, false, { message: 'User not found!' });
+        }
+        if (user.password !== password) {
+            return done(null, false, { message: 'Password is incorrect!' });
+        }
+        return done(null, user);
+    }
+));
+
+passport.serializeUser(function (user, done) {
+    done(null, user.id);
+});
+
+passport.deserializeUser(async function (id, done) {
+    const user = await userModel.findById(id);
+    done(null, user);
+});
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+
+
+
     const { userModel } = require('./UserSchema.js')
     const { blogModel } = require('./BlogSchema.js')
+
+
 
     // Router
     app.get('/', function (req, res) {
